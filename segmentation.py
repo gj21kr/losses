@@ -69,7 +69,7 @@ def TverskyLoss(targets, inputs, alpha=0.5, beta=0.5, smooth=1e-6):
         
         return 1 - Tversky(targets, inputs, alpha, beta, smooth)
     
-def FocalTverskyLoss(targets, inputs, alpha=ALPHA, beta=BETA, gamma=GAMMA, smooth=1e-6):
+def FocalTverskyLoss(targets, inputs, alpha=0.5, beta=0.5, gamma=0.1, smooth=1e-6):
     
         #flatten label and prediction tensors
         inputs = K.flatten(inputs)
