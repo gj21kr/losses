@@ -2,11 +2,12 @@ import tensorflow as tf
 import tensorflow.keras.backend as K
 
 def Dice(targets, inputs, smooth=1e-6):
+    
     #flatten label and prediction tensors
-    inputs = tf.cast(K.flatten(inputs), tf.float32)
-    targets = tf.cast(K.flatten(targets), tf.float32)
-
-    intersection = K.sum(targets * inputs)
+    inputs = K.flatten(inputs)
+    targets = K.flatten(targets)
+    
+    intersection = K.sum(K.dot(targets, inputs))
     dice = (2*intersection + smooth) / (K.sum(targets) + K.sum(inputs) + smooth)
     return dice
 
@@ -14,6 +15,7 @@ def DiceLoss(targets, inputs, smooth=1e-6):
     return 1 - Dice(targets, inputs, smooth)
 
 def DiceBCELoss(targets, inputs, smooth=1e-6):    
+       
     #flatten label and prediction tensors
     inputs = K.flatten(inputs)
     targets = K.flatten(targets)
@@ -26,6 +28,7 @@ def DiceBCELoss(targets, inputs, smooth=1e-6):
     return Dice_BCE
 
 def IoULoss(targets, inputs, smooth=1e-6):
+    
     #flatten label and prediction tensors
     inputs = K.flatten(inputs)
     targets = K.flatten(targets)
@@ -38,7 +41,7 @@ def IoULoss(targets, inputs, smooth=1e-6):
     return 1 - IoU
 
 def FocalLoss(targets, inputs, alpha=0.8, gamma=2):    
-    #flatten label and prediction tensors
+    
     inputs = K.flatten(inputs)
     targets = K.flatten(targets)
     
@@ -49,38 +52,38 @@ def FocalLoss(targets, inputs, alpha=0.8, gamma=2):
     return focal_loss
 
 def Tversky(targets, inputs, alpha=0.5, beta=0.5, smooth=1e-6):
-    
-    #flatten label and prediction tensors
-    inputs = K.flatten(inputs)
-    targets = K.flatten(targets)
-    
-    #True Positives, False Positives & False Negatives
-    TP = K.sum((inputs * targets))
-    FP = K.sum(((1-targets) * inputs))
-    FN = K.sum((targets * (1-inputs)))
-   
-    Tversky = (TP + smooth) / (TP + alpha*FP + beta*FN + smooth)  
-    return Tversky
+        
+        #flatten label and prediction tensors
+        inputs = K.flatten(inputs)
+        targets = K.flatten(targets)
+        
+        #True Positives, False Positives & False Negatives
+        TP = K.sum((inputs * targets))
+        FP = K.sum(((1-targets) * inputs))
+        FN = K.sum((targets * (1-inputs)))
+       
+        Tversky = (TP + smooth) / (TP + alpha*FP + beta*FN + smooth)  
+        return Tversky
     
 def TverskyLoss(targets, inputs, alpha=0.5, beta=0.5, smooth=1e-6):
         
-    return 1 - Tversky(targets, inputs, alpha, beta, smooth)
+        return 1 - Tversky(targets, inputs, alpha, beta, smooth)
     
 def FocalTverskyLoss(targets, inputs, alpha=0.5, beta=0.5, gamma=0.1, smooth=1e-6):
-
-    #flatten label and prediction tensors
-    inputs = K.flatten(inputs)
-    targets = K.flatten(targets)
     
-    #True Positives, False Positives & False Negatives
-    TP = K.sum((inputs * targets))
-    FP = K.sum(((1-targets) * inputs))
-    FN = K.sum((targets * (1-inputs)))
-           
-    Tversky = (TP + smooth) / (TP + alpha*FP + beta*FN + smooth)  
-    FocalTversky = K.pow((1 - Tversky), gamma)
-    
-    return FocalTversky
+        #flatten label and prediction tensors
+        inputs = K.flatten(inputs)
+        targets = K.flatten(targets)
+        
+        #True Positives, False Positives & False Negatives
+        TP = K.sum((inputs * targets))
+        FP = K.sum(((1-targets) * inputs))
+        FN = K.sum((targets * (1-inputs)))
+               
+        Tversky = (TP + smooth) / (TP + alpha*FP + beta*FN + smooth)  
+        FocalTversky = K.pow((1 - Tversky), gamma)
+        
+        return FocalTversky
     
 def Combo_loss(targets, inputs, ALPHA = 0.5, CE_RATIO = 0.5, eps=1e-9):
     """
@@ -103,30 +106,3 @@ Since my GPU quota has run out this week, as of V16 these functions have not bee
     combo = (CE_RATIO * weighted_ce) - ((1 - CE_RATIO) * dice)
     
     return combo
-    
-    
-#####################
-# GAN losses
-#####################
-
-def discriminator_loss(disc_real_output, disc_fake_output):
-    real_loss = tf.math.reduce_mean(tf.math.pow(tf.ones_like(disc_real_output) - disc_real_output, 2))
-    fake_loss = tf.math.reduce_mean(tf.math.pow(tf.zeros_like(disc_fake_output) - disc_fake_output, 2))
-
-    disc_loss = 0.5*(real_loss + fake_loss)
-
-    return disc_loss
-
-
-def generator_loss(target, gen_output, disc_fake_output, alpha):
-    
-    # generalized dice loss
-    dice_loss = DiceLoss(target, gen_output)
-    
-    # disc loss
-    disc_loss = tf.math.reduce_mean(tf.math.pow(tf.ones_like(disc_fake_output) - disc_fake_output, 2))
-       
-    # total loss
-    gen_loss = alpha*dice_loss + disc_loss
-
-    return gen_loss, dice_loss, disc_loss
